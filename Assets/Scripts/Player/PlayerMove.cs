@@ -2,12 +2,15 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CapsuleCollider))]
+[RequireComponent(typeof(PlayerInput))]
 public class PlayerMove : MonoBehaviour
 {
     Rigidbody rb;
     Vector2 moveInput;
 
     public float MoveSpeed = 5f;
+    public bool IsControllable = true;
 
     void Start()
     {

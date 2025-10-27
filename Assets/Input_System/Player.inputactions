@@ -17,8 +17,19 @@
             ],
             "bindings": [
                 {
+                    "name": "",
+                    "id": "5f080c74-f57d-4faf-b341-39271390a4c3",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "2D Vector",
-                    "id": "63b3e230-45bc-4fad-a1c8-50c88fed712b",
+                    "id": "78debbde-6ce5-4e52-ae8b-3daa3901b827",
                     "path": "2DVector",
                     "interactions": "",
                     "processors": "",
@@ -29,7 +40,7 @@
                 },
                 {
                     "name": "up",
-                    "id": "71fa06a6-9f89-443c-907d-2edc96059d09",
+                    "id": "6fbcb068-e9ea-447e-ad56-d079febea686",
                     "path": "<Keyboard>/w",
                     "interactions": "",
                     "processors": "",
@@ -40,7 +51,7 @@
                 },
                 {
                     "name": "down",
-                    "id": "6863d346-babb-4bcf-ac1c-6694a10dd434",
+                    "id": "ec7fba1c-9e3d-4f4f-8c4a-fe33faa0a455",
                     "path": "<Keyboard>/s",
                     "interactions": "",
                     "processors": "",
@@ -51,7 +62,7 @@
                 },
                 {
                     "name": "left",
-                    "id": "5e4a3829-6a67-44d7-bd26-ec1d9e29746d",
+                    "id": "203b34c7-38f0-495f-8f3e-9db7609b460b",
                     "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
@@ -62,7 +73,7 @@
                 },
                 {
                     "name": "right",
-                    "id": "e3084618-9839-4fdc-9057-4720af216868",
+                    "id": "6ca4d95a-4b9d-47d6-b424-ef6a10245613",
                     "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
@@ -70,17 +81,6 @@
                     "action": "Move",
                     "isComposite": false,
                     "isPartOfComposite": true
-                },
-                {
-                    "name": "",
-                    "id": "5f080c74-f57d-4faf-b341-39271390a4c3",
-                    "path": "<Gamepad>/leftStick",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": false
                 }
             ]
         }
