@@ -2,7 +2,8 @@ using UnityEngine;
 
 public class FlagGameController : MonoBehaviour
 {
-    public ArmData LeftArm,RightArm;
+    public ArmData LeftArm;
+    public ArmData RightArm;
 
     public ArmOrder InstructionLeft;
     public ArmOrder InstructionRight;

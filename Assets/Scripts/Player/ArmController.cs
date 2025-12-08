@@ -2,10 +2,19 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 public class ArmController : MonoBehaviour
 {
-    public Rigidbody LeftArm, RightArm;
-    public Vector2 LeftMove, RightMove;
-    public bool _leftGrip, _rightGrip;
-    public float ForcePower = 50.0f;
+    [SerializeField] private Rigidbody _leftArm;
+    [SerializeField] private Rigidbody _rightArm;
+    //[SerializeField] private Transform _leftTarget;
+    //[SerializeField] private Transform _rightTarget;
+
+    [SerializeField] private float _forcePower = 50.0f;
+    //[SerializeField] private float _moveSpeed = 3.0f;
+
+
+    private Vector2 _leftMove;
+    private Vector2 _rightMove;
+    public bool _leftGrip;
+    public bool _rightGrip;
 
     void Start()
     {
@@ -14,13 +23,13 @@ public class ArmController : MonoBehaviour
 
     public void LeftArmMove(InputAction.CallbackContext cont)
     {
-        LeftMove = cont.ReadValue<Vector2>();
-        //Debug.Log("左腕を確認");
+        _leftMove = cont.ReadValue<Vector2>();
+        //Deug.Log("左腕を確認");
     }
 
     public void RightArmMove(InputAction.CallbackContext cont)
     {
-        RightMove = cont.ReadValue<Vector2>();
+        _rightMove = cont.ReadValue<Vector2>();
         //Debug.Log("右腕を確認");
     }
 
@@ -38,13 +47,10 @@ public class ArmController : MonoBehaviour
 
     void FixedUpdate()
     {
-        Vector3 leftForce = new Vector3(LeftMove.x, LeftMove.y, 0) * ForcePower;
-        Vector3 rightForce = new Vector3(RightMove.x, RightMove.y, 0) * ForcePower;
+        var leftForce = new Vector3(_leftMove.x, 0, _leftMove.y) * _forcePower;
+        var rightForce = new Vector3(_rightMove.x, 0, _rightMove.y) * _forcePower;
 
-        LeftArm.AddForce(leftForce, ForceMode.Acceleration);
-        RightArm.AddForce(rightForce, ForceMode.Acceleration);
-        
-        //LeftArm.position += new Vector3(LeftMove.x, LeftMove.y, 0) * MoveSpeed * Time.deltaTime;
-        //RightArm.position += new Vector3(RightMove.x, RightMove.y, 0) * MoveSpeed * Time.deltaTime;
+        _leftArm.AddForce(leftForce, ForceMode.Acceleration);
+        _rightArm.AddForce(rightForce, ForceMode.Acceleration);
     }
 }
