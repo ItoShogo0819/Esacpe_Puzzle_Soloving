@@ -13,7 +13,7 @@ public class FlagGameController : MonoBehaviour
 
     private bool _gameStarted = false;
 
-    void StartGane()
+    void Start()
     {
         _gameStarted = true;
     }
