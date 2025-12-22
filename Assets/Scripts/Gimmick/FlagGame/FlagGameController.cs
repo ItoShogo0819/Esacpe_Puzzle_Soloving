@@ -11,6 +11,13 @@ public class FlagGameController : MonoBehaviour
     public float instructionInterval = 15f; // éwé¶çXêVä‘äu
     private float _timer;
 
+    private bool _gameStarted = false;
+
+    void StartGane()
+    {
+        _gameStarted = true;
+    }
+
     void Update()
     {
         _timer += Time.deltaTime;
@@ -36,8 +43,14 @@ public class FlagGameController : MonoBehaviour
 
     ArmOrder RandomOrder()
     {
-        int r = Random.Range(0, 3); // 0:None 1:Up 2:Down
-        return (ArmOrder)r;
+        if (_gameStarted)
+        {
+            return (ArmOrder)Random.Range(0, 3);
+        }
+        else
+        {
+            return (ArmOrder)Random.Range(1, 3);
+        }
     }
 
     // îªíË
