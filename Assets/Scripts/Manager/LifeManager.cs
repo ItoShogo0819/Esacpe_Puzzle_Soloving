@@ -1,25 +1,23 @@
-using NUnit.Framework;
 using UnityEngine;
 using System.Collections.Generic;
 
 public class LifeManager : MonoBehaviour
 {
-    public int Life = 5;
-    public List<RagDollLifeIcon> Icon;
+    public List<RagDollLifeIcon> Icons = new();
+
+    public int Life => Icons.Count;
+    public bool IsGameOver => Icons.Count == 0;
 
     public void LoseLife()
     {
-        if (Life <= 0 || Icon.Count == 0) return;
+        if (Life <= 0 || Icons.Count == 0) return;
 
-        Icon[0].Exploed();
-        Icon.RemoveAt(0);
-
-        Life--;
+        var icon = Icons[^1];
+        Icons.RemoveAt(Icons.Count - 1);
     }
 
     public void AddLife(RagDollLifeIcon newIcon)
     {
-        Icon.Add(newIcon);
-        Life++;
+        Icons.Add(newIcon);
     }
 }

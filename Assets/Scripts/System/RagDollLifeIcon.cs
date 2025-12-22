@@ -1,5 +1,5 @@
-using NUnit.Framework;
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public class RagDollLifeIcon : MonoBehaviour
@@ -8,16 +8,39 @@ public class RagDollLifeIcon : MonoBehaviour
     [SerializeField] private List<Collider> _colliders;
     [SerializeField] private Rigidbody _center;
 
-    public void Exploed()
+    void Awake()
     {
-        foreach (var rb in _rigidBodies) rb.isKinematic = false;
-        foreach (var col in _colliders) col.enabled = true;
+        _rigidBodies = new List<Rigidbody>(GetComponentsInChildren<Rigidbody>());
+        _colliders = new List<Collider>(GetComponentsInChildren<Collider>());
+
+        SetRagdoll(false);
+    }
+
+    public void Explode()
+    {
+        StartCoroutine(ExplodeRoutine());
+    }
+
+    IEnumerator ExplodeRoutine()
+    {
+        SetRagdoll(true);
+        yield return new WaitForFixedUpdate();
 
         Vector3 dir = (transform.up + transform.forward).normalized;
-        _center.AddForce(dir * 250f, ForceMode.Impulse);
+        _center.AddForce(dir * 120f, ForceMode.Impulse);
 
-        foreach(var rb in _rigidBodies) rb.AddForce(Random.onUnitSphere * 80f, ForceMode.Impulse);
+        foreach (var rb in _rigidBodies)
+            rb.AddForce(Random.onUnitSphere * 30f, ForceMode.Impulse);
 
         Destroy(gameObject, 5f);
+    }
+
+    void SetRagdoll(bool enable)
+    {
+        foreach (var rb in _rigidBodies)
+            rb.isKinematic = !enable;
+
+        foreach (var col in _colliders)
+            col.enabled = enable;
     }
 }

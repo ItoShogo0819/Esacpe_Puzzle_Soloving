@@ -11,8 +11,8 @@ public class ArmController : MonoBehaviour
     //[SerializeField] private float _moveSpeed = 3.0f;
 
 
-    private Vector2 _leftMove;
-    private Vector2 _rightMove;
+    private Vector3 _leftMove;
+    private Vector3 _rightMove;
     public bool _leftGrip;
     public bool _rightGrip;
 
@@ -47,8 +47,8 @@ public class ArmController : MonoBehaviour
 
     void FixedUpdate()
     {
-        var leftForce = new Vector3(_leftMove.x, 0, _leftMove.y) * _forcePower;
-        var rightForce = new Vector3(_rightMove.x, 0, _rightMove.y) * _forcePower;
+        var leftForce = new Vector3(_leftMove.x, _leftMove.y, 0f) * _forcePower;
+        var rightForce = new Vector3(_rightMove.x, _rightMove.y, 0f) * _forcePower;
 
         _leftArm.AddForce(leftForce, ForceMode.Acceleration);
         _rightArm.AddForce(rightForce, ForceMode.Acceleration);

@@ -8,6 +8,13 @@ public class GameFlowManager : MonoBehaviour
     public GameSelector Selector;
     private Queue<string> _gameQueue;
 
+    public bool LastResault { get; private set; }
+
+    void Awake()
+    {
+        DontDestroyOnLoad(gameObject);
+    }
+
     void Start()
     {
         StartNewCycle();
@@ -21,14 +28,8 @@ public class GameFlowManager : MonoBehaviour
 
     public void OnMiniGameFinished(bool success)
     {
+        LastResault = success;
         SceneManager.LoadScene("Transition", LoadSceneMode.Single);
-        StartCoroutine(WaitTransition());
-    }
-
-    IEnumerator WaitTransition()
-    {
-        yield return new WaitForSeconds(1.0f);
-        LoadNextGame();
     }
 
     void LoadNextGame()

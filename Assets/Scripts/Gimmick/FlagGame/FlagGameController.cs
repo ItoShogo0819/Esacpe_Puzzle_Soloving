@@ -8,7 +8,7 @@ public class FlagGameController : MonoBehaviour
     public ArmOrder InstructionLeft;
     public ArmOrder InstructionRight;
 
-    public float instructionInterval = 2f; // 指示更新間隔
+    public float instructionInterval = 15f; // 指示更新間隔
     private float _timer;
 
     void Update()

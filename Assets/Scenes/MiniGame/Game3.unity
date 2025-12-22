@@ -306,7 +306,7 @@ MonoBehaviour:
   RightArm: {fileID: 2146961113}
   InstructionLeft: 0
   InstructionRight: 0
-  instructionInterval: 2
+  instructionInterval: 3
 --- !u!4 &977118871
 Transform:
   m_ObjectHideFlags: 0
