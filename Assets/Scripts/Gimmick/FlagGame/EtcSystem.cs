@@ -16,4 +16,5 @@ public class ArmData : MonoBehaviour
 {
     public Transform Arm;
     public FlagColor Color;
+    public bool HasMoved;
 }

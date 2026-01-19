@@ -1,8 +1,11 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
 public class FlagGameController : MonoBehaviour
 {
+    public GameState State { get; private set; } = GameState.Start;
+
     public ArmData LeftArm;
     public ArmData RightArm;
 
@@ -11,6 +14,11 @@ public class FlagGameController : MonoBehaviour
 
     public float InstructionInterval = 1.5f; // 指示更新間隔
     public float JudgeDelay = 0.5f; // 猶予時間
+
+    private int _successCount = 0;
+    private int _missCount = 0;
+
+    public TimeManager TimeManager;
 
     public Difficulty CurrentDifficulty = Difficulty.Easy;
 
@@ -25,15 +33,42 @@ public class FlagGameController : MonoBehaviour
     private float _timer;
     private float _elapsedTime;
 
-    //public static Difficult CurrentSetting;
+    public event Action OnGameStart;
+    public event Action OnGameOver;
 
     void Start()
     {
+        if(TimeManager == null)
+        {
+            Debug.LogError("TimeManagerが設定されていません。");
+            enabled = false;
+            return;
+        }
+
+        TimeManager.OnTimeUp += GameOver;
+    }
+
+    public void StartGame()
+    {
+        _successCount = 0;
+        _missCount = 0;
+
+        _timer = 0f;
+        _elapsedTime = 0f;
+
         ApplyDifficulty();
+        TimeManager.StartTimer();
+
+        State = GameState.Playing;
+        OnGameStart?.Invoke();
+
+        Debug.Log("ゲームスタート！");
     }
 
     void Update()
     {
+        if(State != GameState.Playing) return;
+
         _elapsedTime += Time.deltaTime;
         _timer += Time.deltaTime;
 
@@ -42,6 +77,29 @@ public class FlagGameController : MonoBehaviour
             GenerateInstruction();
             _timer = 0f;
         }
+    }
+
+    void GameOver()
+    {
+        if (State == GameState.GameOver) return;
+
+        State = GameState.GameOver;
+
+        Debug.Log("ゲームオーバー！");
+
+        TimeManager.StopTimer();
+
+        InstructionLeft = ArmOrder.None;
+        InstructionRight = ArmOrder.None;
+
+        OnGameOver?.Invoke();
+        Debug.Log("ゲームオーバー");
+    }
+
+    public void SetDifficulty(Difficulty difficulty)
+    {
+        CurrentDifficulty = difficulty;
+        //ApplyDifficulty();
     }
 
     void ApplyDifficulty()
@@ -64,9 +122,6 @@ public class FlagGameController : MonoBehaviour
 
         InstructionInterval = _current.InstructionInterval;
         JudgeDelay = _current.JudgeDelay;
-
-        _timer = 0f;
-        _elapsedTime = 0f;
     }
 
     // ランダム指示生成
@@ -77,14 +132,19 @@ public class FlagGameController : MonoBehaviour
 
         if(InstructionLeft == ArmOrder.None && InstructionRight == ArmOrder.None)
         {
-            InstructionLeft = (ArmOrder)Random.Range(1, 3);
+            InstructionLeft = (ArmOrder)UnityEngine.Random.Range(1, 3);
+
+            if(CurrentDifficulty == Difficulty.EX)
+            {
+                InstructionRight = (ArmOrder)UnityEngine.Random.Range(1, 3);
+            }
         }
 
         Debug.Log($"新指示 → 左: {InstructionLeft}, 右: {InstructionRight}");
 
         StartCoroutine(JudgeAfterDelay());
     }
-
+    
     IEnumerator JudgeAfterDelay()
     {
         yield return new WaitForSeconds(JudgeDelay);
@@ -93,8 +153,33 @@ public class FlagGameController : MonoBehaviour
 
     void JudgeOnce()
     {
-        CheckArm(LeftArm, InstructionLeft, "左腕");
-        CheckArm(RightArm, InstructionRight, "右腕");
+        bool leftCorrect = CheckArm(LeftArm, InstructionLeft);
+        bool rightCorrect = CheckArm(RightArm, InstructionRight);
+
+        if(leftCorrect && rightCorrect)
+        {
+            _successCount++;
+            Debug.Log($"成功！ 合計成功回数: {_successCount}");
+        }
+        else
+        {
+            _missCount++;
+            Debug.Log($"失敗！ 合計失敗回数: {_missCount}");
+
+            if(CurrentDifficulty == Difficulty.EX)
+            {
+                TimeManager.SubtractTime(5f);
+                Debug.Log($"ペナルティ！ 残り時間: {TimeManager.TimeLeft}秒");
+
+                if(_missCount >= 3)
+                {
+                    GameOver();
+                }
+            }
+        }
+
+        LeftArm.HasMoved = false;
+        RightArm.HasMoved = false;
     }
 
     ArmOrder RandomOrder()
@@ -104,44 +189,33 @@ public class FlagGameController : MonoBehaviour
             return ArmOrder.None; // ウォームアップ中は指示なし
         }
 
-        if(_current.AllowNoneAfterStart && Random.value < _current.FeintRate)
+        if(_current.AllowNoneAfterStart && UnityEngine.Random.value < _current.FeintRate)
         {
             return ArmOrder.None;
         }
 
-        return (ArmOrder)Random.Range(1, 3);
+        return (ArmOrder)UnityEngine.Random.Range(1, 3);
     }
 
     // 判定
-    void CheckArm(ArmData arm, ArmOrder order, string name)
+    bool CheckArm(ArmData arm, ArmOrder order)
     {
-        bool isUp = IsArmUp(arm.Arm);
+        bool isUp = Vector3.Dot(arm.Arm.up, Vector3.up) > 0.5f;
 
-        switch (order)
+        return order switch
         {
-            case ArmOrder.None:
-                // 指示なし → 常に正解扱い
-                break;
-
-            case ArmOrder.Up:
-                if (isUp)
-                    Debug.Log($"{name}：上げ 正解！");
-                else
-                    Debug.Log($"{name}：上げ ミス！");
-                break;
-
-            case ArmOrder.Down:
-                if (!isUp)
-                    Debug.Log($"{name}：下げ 正解！");
-                else
-                    Debug.Log($"{name}：下げ ミス！");
-                break;
-        }
+            ArmOrder.None => !arm.HasMoved,
+            ArmOrder.Up => isUp,
+            ArmOrder.Down => !isUp,
+            _ => false
+        };
     }
 
-    bool IsArmUp(Transform arm)
+    void OnDestroy()
     {
-        // 腕の角度判定（必要なら調整）
-        return Vector3.Dot(arm.up, Vector3.up) > 0.5f;
+        if(TimeManager != null)
+        {
+            TimeManager.OnTimeUp -= GameOver;
+        }
     }
 }
