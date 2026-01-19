@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using TMPro;
 
 public class TimeManager : MonoBehaviour
 {
@@ -9,6 +10,7 @@ public class TimeManager : MonoBehaviour
     public bool IsRunning { get; private set; }
 
     public event Action OnTimeUp;
+    public  TMP_Text TimeText;
 
     void Start()
     {
