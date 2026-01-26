@@ -1,0 +1,16 @@
+i was told i should make a license to avoid asset flippers so here we are!
+
+LICENSE TERMS ---
+
+you are allowed to:
+use these assets in personal or commercial projects, including games, apps, animations, etc.
+modify the models for use with the included flags.
+sell or distribute your finished projects that include these assets.
+
+you are NOT allowed to:
+re-upload, resell, or redistribute the original or edited files (models, textures, or any part of the asset pack) as standalone
+content or as a part of another asset pack.
+claim the assets as your own original creation.
+
+Bonus;
+Attribution is not required, but appreciated
