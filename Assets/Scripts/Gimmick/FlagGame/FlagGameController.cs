@@ -2,6 +2,10 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// ゲームの状態
+/// 細部な挙動はFlagGameControllerで管理
+/// </summary>
 public class FlagGameController : MonoBehaviour
 {
     public GameState State { get; private set; } = GameState.Start;
@@ -35,6 +39,13 @@ public class FlagGameController : MonoBehaviour
 
     public event Action OnGameStart;
     public event Action OnGameOver;
+    public event Action OnResult;
+
+    public event Action OnRest;
+
+    public event Action<int, int> OnScoreChanged;
+
+    public event Action<ArmOrder, ArmOrder> OnInstructionGenerated;
 
     void Start()
     {
@@ -67,7 +78,7 @@ public class FlagGameController : MonoBehaviour
 
     void Update()
     {
-        if(State != GameState.Playing) return;
+        if(State != GameState.Playing || _current == null) return;
 
         _elapsedTime += Time.deltaTime;
         _timer += Time.deltaTime;
@@ -81,19 +92,25 @@ public class FlagGameController : MonoBehaviour
 
     void GameOver()
     {
-        if (State == GameState.GameOver) return;
-
-        State = GameState.GameOver;
-
-        Debug.Log("ゲームオーバー！");
+        if (State == GameState.GameOver || State == GameState.Result) return;
 
         TimeManager.StopTimer();
 
         InstructionLeft = ArmOrder.None;
         InstructionRight = ArmOrder.None;
 
-        OnGameOver?.Invoke();
-        Debug.Log("ゲームオーバー");
+        if(CurrentDifficulty == Difficulty.EX)
+        {
+            State = GameState.GameOver;
+            OnGameOver?.Invoke();
+            Debug.Log("ゲームオーバー！");
+        }
+        else
+        {
+            State = GameState.Result;
+            OnResult?.Invoke();
+            Debug.Log("リザルトへ！");
+        }
     }
 
     public void SetDifficulty(Difficulty difficulty)
@@ -102,7 +119,7 @@ public class FlagGameController : MonoBehaviour
         //ApplyDifficulty();
     }
 
-    void ApplyDifficulty()
+    private void ApplyDifficulty()
     {
         _current = CurrentDifficulty switch
         {
@@ -125,7 +142,7 @@ public class FlagGameController : MonoBehaviour
     }
 
     // ランダム指示生成
-    void GenerateInstruction()
+    private void GenerateInstruction()
     {
         InstructionLeft = RandomOrder();
         InstructionRight = RandomOrder();
@@ -140,18 +157,18 @@ public class FlagGameController : MonoBehaviour
             }
         }
 
-        Debug.Log($"新指示 → 左: {InstructionLeft}, 右: {InstructionRight}");
+        OnInstructionGenerated?.Invoke(InstructionLeft, InstructionRight);
 
         StartCoroutine(JudgeAfterDelay());
     }
     
-    IEnumerator JudgeAfterDelay()
+    private IEnumerator JudgeAfterDelay()
     {
         yield return new WaitForSeconds(JudgeDelay);
         JudgeOnce();
     }
 
-    void JudgeOnce()
+    private void JudgeOnce()
     {
         bool leftCorrect = CheckArm(LeftArm, InstructionLeft);
         bool rightCorrect = CheckArm(RightArm, InstructionRight);
@@ -177,12 +194,34 @@ public class FlagGameController : MonoBehaviour
                 }
             }
         }
+        OnScoreChanged?.Invoke(_successCount, _missCount);
 
         LeftArm.HasMoved = false;
         RightArm.HasMoved = false;
     }
 
-    ArmOrder RandomOrder()
+    public void ResetGame()
+    {
+        TimeManager.StopTimer();
+        TimeManager.ResetTimer();
+
+        State = GameState.Start;
+        
+        _successCount = 0;
+        _missCount = 0;
+        OnScoreChanged?.Invoke(_successCount, _missCount);
+
+        InstructionLeft = ArmOrder.None;
+        InstructionRight = ArmOrder.None;
+
+        _timer = 0f;
+        _elapsedTime = 0f;
+
+        OnRest?.Invoke();
+        Debug.Log("ゲームリセット");
+    }
+
+    private ArmOrder RandomOrder()
     {
         if (_elapsedTime < _current.WarmupTime)
         {
@@ -198,7 +237,7 @@ public class FlagGameController : MonoBehaviour
     }
 
     // 判定
-    bool CheckArm(ArmData arm, ArmOrder order)
+    private bool CheckArm(ArmData arm, ArmOrder order)
     {
         bool isUp = Vector3.Dot(arm.Arm.up, Vector3.up) > 0.5f;
 
@@ -211,7 +250,7 @@ public class FlagGameController : MonoBehaviour
         };
     }
 
-    void OnDestroy()
+    private void OnDestroy()
     {
         if(TimeManager != null)
         {

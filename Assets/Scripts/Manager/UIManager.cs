@@ -2,27 +2,72 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    [SerializeField] private GameObject[] _uiScreens;
+    [Header("UIパネル")]
+    public GameObject TitleUI;
+    public GameObject InGameUI;
+    public GameObject GameOverUI;
+    public GameObject ResultUI;
+
+    [Header("ゲームコントローラー")]
     [SerializeField] private FlagGameController _gameController;
 
-    public void OnAnyButtonPressed(Difficulty difficulty)
+    private void Start()
     {
-        HideAllUI();
+        if(_gameController != null)
+        {
+            _gameController.OnGameStart += ShowInGameUI;
+            _gameController.OnGameOver += ShowGameOverUI;
+            _gameController.OnResult += ShowResultUI;
+        }
+
+        UpdateUI(GameState.Start);
+    }
+
+    private void OnDestroy()
+    {
+        if (_gameController != null)
+        {
+            _gameController.OnGameStart -= ShowInGameUI;
+            _gameController.OnGameOver -= ShowGameOverUI;
+            _gameController.OnResult -= ShowResultUI;
+        }
+    }
+
+    public void StartGameButton(Difficulty difficulty)
+    {
         _gameController.SetDifficulty(difficulty);
         _gameController.StartGame();
     }
 
-    public void ShowUI(GameObject ui)
+    private void ShowInGameUI()
     {
-        HideAllUI();
-        ui.SetActive(true);
+        if (_gameController.State != GameState.Playing) return;
+        UpdateUI(GameState.Playing);
     }
 
-    public void HideAllUI()
+    private void ShowGameOverUI()
     {
-        foreach(var ui in _uiScreens)
-        {
-            ui.SetActive(false);
-        }
+        if (_gameController.State != GameState.GameOver) return;
+        UpdateUI(GameState.GameOver);
+    }
+
+    private void ShowResultUI()
+    {
+        if(_gameController.State != GameState.Result) return;
+        UpdateUI(GameState.Result);
+    }
+
+    public void ReturnToTitleButton()
+    {
+        _gameController.ResetGame();
+        UpdateUI(GameState.Start);
+    }
+
+    private void UpdateUI(GameState state)
+    {
+        TitleUI.SetActive(state == GameState.Start);
+        InGameUI.SetActive(state == GameState.Playing);
+        GameOverUI.SetActive(state == GameState.GameOver);
+        ResultUI.SetActive(state == GameState.Result);
     }
 }
