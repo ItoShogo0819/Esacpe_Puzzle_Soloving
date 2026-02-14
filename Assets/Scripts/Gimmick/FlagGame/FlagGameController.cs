@@ -257,4 +257,22 @@ public class FlagGameController : MonoBehaviour
             TimeManager.OnTimeUp -= GameOver;
         }
     }
+
+    public float InstructionRemainTime
+    {
+        get
+        {
+            if (State != GameState.Playing || _current == null) return 0f;
+            return Mathf.Max(InstructionInterval - _timer, 0f);
+        }
+    }
+
+    public float InstructionRemain01
+    {
+        get
+        {
+            if (State != GameState.Playing || _current == null) return 0f;
+            return Mathf.Clamp01((InstructionInterval - _timer) / InstructionInterval);
+        }
+    }
 }
