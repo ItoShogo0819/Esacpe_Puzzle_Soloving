@@ -10,46 +10,47 @@ public class FlagGameController : MonoBehaviour
 {
     public GameState State { get; private set; } = GameState.Start;
 
+    [Header("腕データ")]
     public ArmData LeftArm;
     public ArmData RightArm;
 
+    [Header("指示")]
     public ArmOrder InstructionLeft;
     public ArmOrder InstructionRight;
 
+    [Header("タイミング")]
     public float InstructionInterval = 1.5f; // 指示更新間隔
-    public float JudgeDelay = 0.5f; // 猶予時間
+    public float JudgeDelay = 0.5f;          // 猶予時間
 
     private int _successCount = 0;
     private int _missCount = 0;
 
+    [Header("ゲーム管理")]
     public TimeManager TimeManager;
 
-    public Difficulty CurrentDifficulty = Difficulty.Easy;
+    [SerializeField] private ArmData _playerArms;
 
+    public Difficulty CurrentDifficulty = Difficulty.Easy;
     public Difficult Easy;
     public Difficult Normal;
     public Difficult Hard;
     public Difficult EX;
 
     private Difficult _current;
-    //public float EasyWarmupTime = 2.0f; // イージーモードウォームアップ時間
-
     private float _timer;
     private float _elapsedTime;
 
     public event Action OnGameStart;
     public event Action OnGameOver;
     public event Action OnResult;
-
     public event Action OnRest;
-
     public event Action<int, int> OnScoreChanged;
-
     public event Action<ArmOrder, ArmOrder> OnInstructionGenerated;
+    public event Action<bool, bool> OnJudgeResult; // 成功, 失敗
 
     void Start()
     {
-        if(TimeManager == null)
+        if (TimeManager == null)
         {
             Debug.LogError("TimeManagerが設定されていません。");
             enabled = false;
@@ -63,7 +64,6 @@ public class FlagGameController : MonoBehaviour
     {
         _successCount = 0;
         _missCount = 0;
-
         _timer = 0f;
         _elapsedTime = 0f;
 
@@ -78,7 +78,7 @@ public class FlagGameController : MonoBehaviour
 
     void Update()
     {
-        if(State != GameState.Playing || _current == null) return;
+        if (State != GameState.Playing || _current == null) return;
 
         _elapsedTime += Time.deltaTime;
         _timer += Time.deltaTime;
@@ -90,33 +90,10 @@ public class FlagGameController : MonoBehaviour
         }
     }
 
-    void GameOver()
-    {
-        if (State == GameState.GameOver || State == GameState.Result) return;
-
-        TimeManager.StopTimer();
-
-        InstructionLeft = ArmOrder.None;
-        InstructionRight = ArmOrder.None;
-
-        if(CurrentDifficulty == Difficulty.EX)
-        {
-            State = GameState.GameOver;
-            OnGameOver?.Invoke();
-            Debug.Log("ゲームオーバー！");
-        }
-        else
-        {
-            State = GameState.Result;
-            OnResult?.Invoke();
-            Debug.Log("リザルトへ！");
-        }
-    }
-
     public void SetDifficulty(Difficulty difficulty)
     {
         CurrentDifficulty = difficulty;
-        //ApplyDifficulty();
+        ApplyDifficulty();
     }
 
     private void ApplyDifficulty()
@@ -130,7 +107,7 @@ public class FlagGameController : MonoBehaviour
             _ => Easy,
         };
 
-        if(_current == null)
+        if (_current == null)
         {
             Debug.LogError("難易度設定が見つかりません。");
             enabled = false;
@@ -141,63 +118,90 @@ public class FlagGameController : MonoBehaviour
         JudgeDelay = _current.JudgeDelay;
     }
 
-    // ランダム指示生成
     private void GenerateInstruction()
     {
         InstructionLeft = RandomOrder();
         InstructionRight = RandomOrder();
 
-        if(InstructionLeft == ArmOrder.None && InstructionRight == ArmOrder.None)
+        if (InstructionLeft == ArmOrder.None && InstructionRight == ArmOrder.None)
         {
             InstructionLeft = (ArmOrder)UnityEngine.Random.Range(1, 3);
-
-            if(CurrentDifficulty == Difficulty.EX)
-            {
+            if (CurrentDifficulty == Difficulty.EX)
                 InstructionRight = (ArmOrder)UnityEngine.Random.Range(1, 3);
-            }
         }
 
         OnInstructionGenerated?.Invoke(InstructionLeft, InstructionRight);
 
         StartCoroutine(JudgeAfterDelay());
     }
-    
+
     private IEnumerator JudgeAfterDelay()
     {
         yield return new WaitForSeconds(JudgeDelay);
         JudgeOnce();
     }
 
+    private bool CheckArm(ArmData armData, ArmOrder order, bool isLeft)
+    {
+        if (armData == null || armData.Chest == null) return false;
+
+        Transform armTransform = isLeft ? armData.LeftArm : armData.RightArm;
+        if (armTransform == null) return false;
+
+        Vector3 dir = (armTransform.position - armData.Chest.position).normalized;
+
+        bool isUp = dir.y > 0.5f;
+        bool isDown = dir.y < -0.5f;
+
+        return order switch
+        {
+            ArmOrder.None => !armData.HasMoved,
+            ArmOrder.Up => isUp,
+            ArmOrder.Down => isDown,
+            _ => false,
+        };
+    }
+
     private void JudgeOnce()
     {
-        bool leftCorrect = CheckArm(LeftArm, InstructionLeft);
-        bool rightCorrect = CheckArm(RightArm, InstructionRight);
+        bool leftCorrect = CheckArm(_playerArms, InstructionLeft, true);
+        bool rightCorrect = CheckArm(_playerArms, InstructionRight, false);
 
-        if(leftCorrect && rightCorrect)
+        bool isSuccess = leftCorrect && rightCorrect;
+
+        if (isSuccess)
         {
             _successCount++;
-            Debug.Log($"成功！ 合計成功回数: {_successCount}");
+            Debug.Log("成功！");
         }
         else
         {
             _missCount++;
-            Debug.Log($"失敗！ 合計失敗回数: {_missCount}");
-
-            if(CurrentDifficulty == Difficulty.EX)
+            Debug.Log("失敗！");
+            if (CurrentDifficulty == Difficulty.EX)
             {
                 TimeManager.SubtractTime(5f);
-                Debug.Log($"ペナルティ！ 残り時間: {TimeManager.TimeLeft}秒");
-
-                if(_missCount >= 3)
-                {
-                    GameOver();
-                }
+                if (_missCount >= 3) GameOver();
             }
         }
+
+        OnJudgeResult?.Invoke(leftCorrect, rightCorrect);
         OnScoreChanged?.Invoke(_successCount, _missCount);
 
+        // 判定後リセット
         LeftArm.HasMoved = false;
         RightArm.HasMoved = false;
+    }
+
+    private ArmOrder RandomOrder()
+    {
+        if (_elapsedTime < _current.WarmupTime)
+            return ArmOrder.None;
+
+        if (_current.AllowNoneAfterStart && UnityEngine.Random.value < _current.FeintRate)
+            return ArmOrder.None;
+
+        return (ArmOrder)UnityEngine.Random.Range(1, 3);
     }
 
     public void ResetGame()
@@ -206,7 +210,7 @@ public class FlagGameController : MonoBehaviour
         TimeManager.ResetTimer();
 
         State = GameState.Start;
-        
+
         _successCount = 0;
         _missCount = 0;
         OnScoreChanged?.Invoke(_successCount, _missCount);
@@ -221,58 +225,35 @@ public class FlagGameController : MonoBehaviour
         Debug.Log("ゲームリセット");
     }
 
-    private ArmOrder RandomOrder()
+    void GameOver()
     {
-        if (_elapsedTime < _current.WarmupTime)
+        if (State == GameState.GameOver || State == GameState.Result) return;
+
+        TimeManager.StopTimer();
+
+        InstructionLeft = ArmOrder.None;
+        InstructionRight = ArmOrder.None;
+
+        if (CurrentDifficulty == Difficulty.EX)
         {
-            return ArmOrder.None; // ウォームアップ中は指示なし
+            State = GameState.GameOver;
+            OnGameOver?.Invoke();
+            Debug.Log("ゲームオーバー！");
         }
-
-        if(_current.AllowNoneAfterStart && UnityEngine.Random.value < _current.FeintRate)
+        else
         {
-            return ArmOrder.None;
+            State = GameState.Result;
+            OnResult?.Invoke();
+            Debug.Log("リザルトへ！");
         }
-
-        return (ArmOrder)UnityEngine.Random.Range(1, 3);
-    }
-
-    // 判定
-    private bool CheckArm(ArmData arm, ArmOrder order)
-    {
-        bool isUp = Vector3.Dot(arm.Arm.up, Vector3.up) > 0.5f;
-
-        return order switch
-        {
-            ArmOrder.None => !arm.HasMoved,
-            ArmOrder.Up => isUp,
-            ArmOrder.Down => !isUp,
-            _ => false
-        };
     }
 
     private void OnDestroy()
     {
-        if(TimeManager != null)
-        {
+        if (TimeManager != null)
             TimeManager.OnTimeUp -= GameOver;
-        }
     }
 
-    public float InstructionRemainTime
-    {
-        get
-        {
-            if (State != GameState.Playing || _current == null) return 0f;
-            return Mathf.Max(InstructionInterval - _timer, 0f);
-        }
-    }
-
-    public float InstructionRemain01
-    {
-        get
-        {
-            if (State != GameState.Playing || _current == null) return 0f;
-            return Mathf.Clamp01((InstructionInterval - _timer) / InstructionInterval);
-        }
-    }
+    public float InstructionRemainTime => State == GameState.Playing && _current != null ? Mathf.Max(InstructionInterval - _timer, 0f) : 0f;
+    public float InstructionRemain01 => State == GameState.Playing && _current != null ? Mathf.Clamp01((InstructionInterval - _timer) / InstructionInterval) : 0f;
 }

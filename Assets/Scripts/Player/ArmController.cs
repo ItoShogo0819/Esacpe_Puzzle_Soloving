@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 public class ArmController : MonoBehaviour
 {
-    [SerializeField] private Rigidbody _leftArm;
-    [SerializeField] private Rigidbody _rightArm;
+    [SerializeField] public Rigidbody LeftArm;
+    [SerializeField] public Rigidbody RightArm;
     //[SerializeField] private Transform _leftTarget;
     //[SerializeField] private Transform _rightTarget;
 
@@ -50,7 +50,7 @@ public class ArmController : MonoBehaviour
         var leftForce = new Vector3(_leftMove.x, _leftMove.y, 0f) * _forcePower;
         var rightForce = new Vector3(_rightMove.x, _rightMove.y, 0f) * _forcePower;
 
-        _leftArm.AddForce(leftForce, ForceMode.Acceleration);
-        _rightArm.AddForce(rightForce, ForceMode.Acceleration);
+        LeftArm.AddForce(leftForce, ForceMode.Acceleration);
+        RightArm.AddForce(rightForce, ForceMode.Acceleration);
     }
 }

@@ -11,10 +11,11 @@ public enum ArmOrder
     None,Up,Down
 }
 
-[System.Serializable]
 public class ArmData : MonoBehaviour
 {
-    public Transform Arm;
-    public FlagColor Color;
+    [SerializeField] public Transform LeftArm;
+    [SerializeField] public Transform RightArm;
+    [SerializeField] public Transform Chest;
+    //public FlagColor Color;
     public bool HasMoved;
 }
