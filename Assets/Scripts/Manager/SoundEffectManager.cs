@@ -6,7 +6,7 @@ public class SoundEffectManager : MonoBehaviour
     [SerializeField] private AudioClip _successSE;
     [SerializeField] private AudioClip _missSE;
 
-    [SerializeField] private FlagGameController _gameController;
+    [SerializeField] private ScoreManager _scoreManager;
 
     private AudioSource _audioSource;
 
@@ -17,17 +17,17 @@ public class SoundEffectManager : MonoBehaviour
 
     void Start()
     {
-        if (_gameController != null)
+        if (_scoreManager != null)
         {
-            _gameController.OnScoreChanged += OnScoreChanged;
+            _scoreManager.OnScoreChanged += OnScoreChanged;
         }
     }
 
     void OnDestroy()
     {
-        if (_gameController != null)
+        if (_scoreManager != null)
         {
-            _gameController.OnScoreChanged -= OnScoreChanged;
+            _scoreManager.OnScoreChanged -= OnScoreChanged;
         }
     }
 

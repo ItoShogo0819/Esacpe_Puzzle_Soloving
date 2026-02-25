@@ -3,14 +3,16 @@ using UnityEngine;
 
 public class ScoreUI : MonoBehaviour
 {
-    [SerializeField] private FlagGameController _game;
+    [SerializeField] private ScoreManager _scoreManager;
     [SerializeField] private TMP_Text _successText;
     [SerializeField] private TMP_Text _missText;
 
     void Start()
     {
-        if(_game != null)
-            _game.OnScoreChanged += UpdateScore;
+        if(_scoreManager != null)
+        {
+            _scoreManager.OnScoreChanged += UpdateScore;
+        }
     }
 
     void UpdateScore(int success, int miss)
@@ -21,7 +23,9 @@ public class ScoreUI : MonoBehaviour
 
     void OnDestroy()
     {
-        if(_game != null)
-            _game.OnScoreChanged -= UpdateScore;
+        if(_scoreManager != null)
+        {
+            _scoreManager.OnScoreChanged -= UpdateScore;
+        }
     }
 }

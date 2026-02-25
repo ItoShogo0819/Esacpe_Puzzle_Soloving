@@ -22,10 +22,10 @@ public class InstructionBlink : MonoBehaviour
         if (_cont == null) return;
         if (_cont.State != GameState.Playing) return;
 
-        float remain01 = _cont.InstructionRemain01;
+        float remain01 = _cont.GetInstructionProgress();
 
         UpdateSide(_leftImages, _cont.InstructionLeft, remain01);
-        UpdateSide(_rightImages, _cont.InstructionRight, remain01);
+        UpdateSide(_rightImages, _cont.InstructionLeft, remain01);
     }
 
     private void UpdateSide(Image[] images, ArmOrder current, float remain01)

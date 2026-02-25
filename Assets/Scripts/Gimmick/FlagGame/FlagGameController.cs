@@ -15,57 +15,49 @@ public class FlagGameController : MonoBehaviour
     public ArmData RightArm;
 
     [Header("指示")]
-    public ArmOrder InstructionLeft;
-    public ArmOrder InstructionRight;
-
-    [Header("タイミング")]
-    public float InstructionInterval = 1.5f; // 指示更新間隔
-    public float JudgeDelay = 0.5f;          // 猶予時間
-
-    private int _successCount = 0;
-    private int _missCount = 0;
+    public ArmOrder InstructionLeft => _currentInstruction.Left;
+    public ArmOrder InstructionRight => _currentInstruction.Right;
 
     [Header("ゲーム管理")]
     public TimeManager TimeManager;
-
     [SerializeField] private ArmData _playerArms;
+    [SerializeField] private FlagJudge _judge;
+    [SerializeField] private FlagGenerator _generator;
+    [SerializeField] private ScoreManager _scoreManager;
 
-    public Difficulty CurrentDifficulty = Difficulty.Easy;
-    public Difficult Easy;
-    public Difficult Normal;
-    public Difficult Hard;
-    public Difficult EX;
-
-    private Difficult _current;
+    private InstructionSet _currentInstruction;
     private float _timer;
     private float _elapsedTime;
 
+    // 難易度設定
+    public Difficulty CurrentDifficulty = Difficulty.Easy;
+    [SerializeField] private DifficultyData _easyData;
+    [SerializeField] private DifficultyData _normalData;
+    [SerializeField] private DifficultyData _hardData;
+    [SerializeField] private DifficultyData _exData;
+    [SerializeField] private DifficultyData _currentSettings;
+
+    // イベント
     public event Action OnGameStart;
     public event Action OnGameOver;
     public event Action OnResult;
     public event Action OnRest;
-    public event Action<int, int> OnScoreChanged;
     public event Action<ArmOrder, ArmOrder> OnInstructionGenerated;
     public event Action<bool, bool> OnJudgeResult; // 成功, 失敗
 
     void Start()
     {
-        if (TimeManager == null)
-        {
-            Debug.LogError("TimeManagerが設定されていません。");
-            enabled = false;
-            return;
-        }
-
+        if (TimeManager == null) return;
         TimeManager.OnTimeUp += GameOver;
+
+        _scoreManager.OnMissLimitExeeded += GameOver;
     }
 
     public void StartGame()
     {
-        _successCount = 0;
-        _missCount = 0;
         _timer = 0f;
         _elapsedTime = 0f;
+        _scoreManager.ResetScore();
 
         ApplyDifficulty();
         TimeManager.StartTimer();
@@ -78,12 +70,12 @@ public class FlagGameController : MonoBehaviour
 
     void Update()
     {
-        if (State != GameState.Playing || _current == null) return;
+        if (State != GameState.Playing || _currentSettings == null) return;
 
         _elapsedTime += Time.deltaTime;
         _timer += Time.deltaTime;
 
-        if (_timer >= InstructionInterval)
+        if (_timer >= _currentSettings.InstructionInterval)
         {
             GenerateInstruction();
             _timer = 0f;
@@ -98,110 +90,54 @@ public class FlagGameController : MonoBehaviour
 
     private void ApplyDifficulty()
     {
-        _current = CurrentDifficulty switch
+        _currentSettings = CurrentDifficulty switch
         {
-            Difficulty.Easy => Easy,
-            Difficulty.Normal => Normal,
-            Difficulty.Hard => Hard,
-            Difficulty.EX => EX,
-            _ => Easy,
+            Difficulty.Easy => _easyData,
+            Difficulty.Normal => _normalData,
+            Difficulty.Hard => _hardData,
+            Difficulty.EX => _exData,
+            _ => _easyData
         };
 
-        if (_current == null)
+        if (_currentSettings == null)
         {
-            Debug.LogError("難易度設定が見つかりません。");
-            enabled = false;
+            Debug.LogError($"{CurrentDifficulty} のデータが設定されていません。");
             return;
         }
-
-        InstructionInterval = _current.InstructionInterval;
-        JudgeDelay = _current.JudgeDelay;
     }
 
     private void GenerateInstruction()
     {
-        InstructionLeft = RandomOrder();
-        InstructionRight = RandomOrder();
+        // 現在の難易度と経過時間に基づき、新たな指示セットを生成
+        _currentInstruction = _generator.Generate(_currentSettings, CurrentDifficulty, _elapsedTime);
+        
+        // 現在の指示セットを更新
+        OnInstructionGenerated?.Invoke(_currentInstruction.Left, _currentInstruction.Right);
 
-        if (InstructionLeft == ArmOrder.None && InstructionRight == ArmOrder.None)
-        {
-            InstructionLeft = (ArmOrder)UnityEngine.Random.Range(1, 3);
-            if (CurrentDifficulty == Difficulty.EX)
-                InstructionRight = (ArmOrder)UnityEngine.Random.Range(1, 3);
-        }
-
-        OnInstructionGenerated?.Invoke(InstructionLeft, InstructionRight);
-
-        StartCoroutine(JudgeAfterDelay());
+        StartCoroutine(JudgeAfterDelay(_currentSettings.JudgeDelay));
     }
 
-    private IEnumerator JudgeAfterDelay()
+    private IEnumerator JudgeAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(JudgeDelay);
+        Debug.Log($"判定待ち開始: {delay}秒後に判定");
+        yield return new WaitForSeconds(delay);
         JudgeOnce();
-    }
-
-    private bool CheckArm(ArmData armData, ArmOrder order, bool isLeft)
-    {
-        if (armData == null || armData.Chest == null) return false;
-
-        Transform armTransform = isLeft ? armData.LeftArm : armData.RightArm;
-        if (armTransform == null) return false;
-
-        Vector3 dir = (armTransform.position - armData.Chest.position).normalized;
-
-        bool isUp = dir.y > 0.5f;
-        bool isDown = dir.y < -0.5f;
-
-        return order switch
-        {
-            ArmOrder.None => !armData.HasMoved,
-            ArmOrder.Up => isUp,
-            ArmOrder.Down => isDown,
-            _ => false,
-        };
     }
 
     private void JudgeOnce()
     {
-        bool leftCorrect = CheckArm(_playerArms, InstructionLeft, true);
-        bool rightCorrect = CheckArm(_playerArms, InstructionRight, false);
+        //　プレイヤーの腕の状態と現在の指示を比較して成功か失敗かを判断
+        bool isSuccess = _judge.JudgeAll(_playerArms, _currentInstruction);
 
-        bool isSuccess = leftCorrect && rightCorrect;
+        // 結果をスコアマネージャーに通知してスコアを更新(ペナルティ判断もManagerで管理)
+        _scoreManager.AddResult(isSuccess, CurrentDifficulty);
 
-        if (isSuccess)
-        {
-            _successCount++;
-            Debug.Log("成功！");
-        }
-        else
-        {
-            _missCount++;
-            Debug.Log("失敗！");
-            if (CurrentDifficulty == Difficulty.EX)
-            {
-                TimeManager.SubtractTime(5f);
-                if (_missCount >= 3) GameOver();
-            }
-        }
+        // 成功と失敗の両方の状態を通知
+        OnJudgeResult?.Invoke(isSuccess, !isSuccess);
 
-        OnJudgeResult?.Invoke(leftCorrect, rightCorrect);
-        OnScoreChanged?.Invoke(_successCount, _missCount);
-
-        // 判定後リセット
-        LeftArm.HasMoved = false;
+        // 腕の状態をリセット
+        LeftArm.HasMoved = false;   
         RightArm.HasMoved = false;
-    }
-
-    private ArmOrder RandomOrder()
-    {
-        if (_elapsedTime < _current.WarmupTime)
-            return ArmOrder.None;
-
-        if (_current.AllowNoneAfterStart && UnityEngine.Random.value < _current.FeintRate)
-            return ArmOrder.None;
-
-        return (ArmOrder)UnityEngine.Random.Range(1, 3);
     }
 
     public void ResetGame()
@@ -211,12 +147,9 @@ public class FlagGameController : MonoBehaviour
 
         State = GameState.Start;
 
-        _successCount = 0;
-        _missCount = 0;
-        OnScoreChanged?.Invoke(_successCount, _missCount);
+        _scoreManager.ResetScore();
 
-        InstructionLeft = ArmOrder.None;
-        InstructionRight = ArmOrder.None;
+        _currentInstruction = default;
 
         _timer = 0f;
         _elapsedTime = 0f;
@@ -230,9 +163,6 @@ public class FlagGameController : MonoBehaviour
         if (State == GameState.GameOver || State == GameState.Result) return;
 
         TimeManager.StopTimer();
-
-        InstructionLeft = ArmOrder.None;
-        InstructionRight = ArmOrder.None;
 
         if (CurrentDifficulty == Difficulty.EX)
         {
@@ -253,7 +183,17 @@ public class FlagGameController : MonoBehaviour
         if (TimeManager != null)
             TimeManager.OnTimeUp -= GameOver;
     }
+    
+    public float GetInstructionProgress()
+    {
+        // 計算できない場合は0を返す
+        if (State != GameState.Playing || _currentSettings == null) return 0f;
+        if (_currentSettings.InstructionInterval <= 0f) return 0f;
 
-    public float InstructionRemainTime => State == GameState.Playing && _current != null ? Mathf.Max(InstructionInterval - _timer, 0f) : 0f;
-    public float InstructionRemain01 => State == GameState.Playing && _current != null ? Mathf.Clamp01((InstructionInterval - _timer) / InstructionInterval) : 0f;
+        // 残り時間を計算し割合を出す
+        float remainingTime = _currentSettings.InstructionInterval - _timer;
+        float progress = remainingTime / _currentSettings.InstructionInterval;
+
+        return Mathf.Clamp01(progress);
+    }
 }
