@@ -86,15 +86,19 @@ public class AudioManager : MonoBehaviour
     {
         _bgmSource.Stop();
 
-        // ƒQ[ƒ€‚Ìó‘Ô‚É‰‚¶‚ÄBGM‚ğØ‚è‘Ö‚¦‚é
-        _bgmSource.clip = state switch
+        // ƒQ[ƒ€ó‘Ô‚É‰‚¶‚½BGM‚Æ‰¹—Ê‚ğİ’è
+        (AudioClip clip, float volume) settings = state switch
         {
-            GameState.Start => _titleBGM,
-            GameState.Playing => _playBGM,
-            GameState.GameOver => _gameOverBGM,
-            GameState.Result => _resultBGM,
-            _ => null
+            GameState.Start => (_titleBGM, 0.5f),
+            GameState.Playing => (_playBGM, 0.2f),
+            GameState.GameOver => (_gameOverBGM, 0.5f),
+            GameState.Result => (_resultBGM, 0.5f),
+            _ => (null, 1f)
         };
+
+        // BGM‚ğİ’è‚µ‚ÄÄ¶
+        _bgmSource.clip = settings.clip;
+        _bgmSource.volume = settings.volume;
 
         if (_bgmSource.clip != null)
         {
