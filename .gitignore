@@ -97,3 +97,9 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+Assets/Concrete_UP05/Textures/DSCF7417_ao.png
+Assets/Concrete_UP05/Textures/DSCF7417_ao.png.meta
+Assets/Concrete_UP05/Textures/DSCF7417_displacement.png
+Assets/Concrete_UP05/Textures/DSCF7417_displacement.png.meta
+Assets/Concrete_UP05/Textures/DSCF7417_normal.png
+Assets/Concrete_UP05/Textures/DSCF7417_normal.png.meta
