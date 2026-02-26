@@ -4,11 +4,8 @@ public class ArmController : MonoBehaviour
 {
     [SerializeField] public Rigidbody LeftArm;
     [SerializeField] public Rigidbody RightArm;
-    //[SerializeField] private Transform _leftTarget;
-    //[SerializeField] private Transform _rightTarget;
 
     [SerializeField] private float _forcePower = 50.0f;
-    //[SerializeField] private float _moveSpeed = 3.0f;
 
 
     private Vector3 _leftMove;

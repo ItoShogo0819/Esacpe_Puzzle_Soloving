@@ -3,8 +3,8 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// ゲームの状態
-/// 細部な挙動はFlagGameControllerで管理
+/// ゲーム内の司令塔的な役割を担うクラス。
+/// ゲームの状態管理、指示の生成、判定の実行、スコア管理などを統括する。
 /// </summary>
 public class FlagGameController : MonoBehaviour
 {
@@ -90,6 +90,7 @@ public class FlagGameController : MonoBehaviour
 
     private void ApplyDifficulty()
     {
+        // 難易度に応じた設定を適用
         _currentSettings = CurrentDifficulty switch
         {
             Difficulty.Easy => _easyData,
@@ -99,6 +100,7 @@ public class FlagGameController : MonoBehaviour
             _ => _easyData
         };
 
+        // 設定が正しく適用されているか確認
         if (_currentSettings == null)
         {
             Debug.LogError($"{CurrentDifficulty} のデータが設定されていません。");
